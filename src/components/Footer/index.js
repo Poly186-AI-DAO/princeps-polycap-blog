@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useForm } from "react-hook-form";
-import { GithubIcon, LinkedinIcon, TwitterIcon, YouTubeIcon, PeerlistIcon } from "../Icons";
+import { GithubIcon, LinkedinIcon, TwitterIcon, YouTubeIcon, PeerlistIcon, InstagramIcon, TikTokIcon, MediumIcon } from "../Icons";
 import Link from "next/link";
 import siteMetadata from "@/src/utils/siteMetaData";
 
@@ -52,15 +52,6 @@ const Footer = () => {
           <LinkedinIcon className="hover:scale-125 transition-all ease duration-200" />
         </a>
         <a
-          href={siteMetadata.twitter}
-          className="inline-block w-6 h-6 mr-4 animate-breathe"
-          aria-label="Reach out to me via Twitter"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <TwitterIcon className="hover:scale-125 transition-all ease duration-200" />
-        </a>
-        <a
           href={siteMetadata.github}
           className="inline-block w-6 h-6 mr-4 fill-light animate-breathe"
           aria-label="Check my profile on Github"
@@ -68,6 +59,15 @@ const Footer = () => {
           rel="noopener noreferrer"
         >
           <GithubIcon className="fill-light dark:fill-dark  hover:scale-125 transition-all ease duration-200" />
+        </a>
+        <a
+          href={siteMetadata.twitter}
+          className="inline-block w-6 h-6 mr-4 animate-breathe"
+          aria-label="Reach out to me via Twitter"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <TwitterIcon className="hover:scale-125 transition-all ease duration-200" />
         </a>
         <a
           href={siteMetadata.youtube}
@@ -86,6 +86,33 @@ const Footer = () => {
           rel="noopener noreferrer"
         >
           <PeerlistIcon className="hover:scale-125 transition-all ease duration-200" />
+        </a>
+        <a
+          href={siteMetadata.instagram}
+          className="inline-block w-6 h-6 mr-4 animate-breathe"
+          aria-label="Follow me on Instagram"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <InstagramIcon className="hover:scale-125 transition-all ease duration-200" />
+        </a>
+        <a
+          href={siteMetadata.tiktok}
+          className="inline-block w-6 h-6 mr-4 animate-breathe"
+          aria-label="Follow me on TikTok"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <TikTokIcon className="hover:scale-125 transition-all ease duration-200" />
+        </a>
+        <a
+          href={siteMetadata.medium}
+          className="inline-block w-6 h-6 mr-4 animate-breathe"
+          aria-label="Read my articles on Medium"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <MediumIcon className="hover:scale-125 transition-all ease duration-200" />
         </a>
       </div>
 

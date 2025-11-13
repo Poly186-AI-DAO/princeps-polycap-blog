@@ -434,8 +434,66 @@ export const PeerlistIcon = ({ className, ...rest }) => {
       className={cx("w-full h-auto", className)}
       {...rest}
     >
-      <path d="M6 4h8a4 4 0 0 1 4 4v0a4 4 0 0 1-4 4H6V4z"></path>
-      <path d="M6 12h9a4 4 0 0 1 4 4v0a4 4 0 0 1-4 4H6V12z"></path>
+      <path d="M6 4h7a5 5 0 0 1 5 5v0a5 5 0 0 1-5 5H6V4z"></path>
+      <line x1="6" y1="14" x2="6" y2="20"></line>
+    </svg>
+  );
+};
+
+export const InstagramIcon = ({ className, ...rest }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={24}
+      height={24}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cx("w-full h-auto", className)}
+      {...rest}
+    >
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+      <circle cx="12" cy="12" r="4"></circle>
+      <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor"></circle>
+    </svg>
+  );
+};
+
+export const TikTokIcon = ({ className, ...rest }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={24}
+      height={24}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cx("w-full h-auto", className)}
+      {...rest}
+    >
+      <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path>
+    </svg>
+  );
+};
+
+export const MediumIcon = ({ className, ...rest }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={24}
+      height={24}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={cx("w-full h-auto", className)}
+      {...rest}
+    >
+      <path d="M13.54 12a6.8 6.8 0 01-6.77 6.82A6.8 6.8 0 010 12a6.8 6.8 0 016.77-6.82A6.8 6.8 0 0113.54 12zM20.96 12c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z"></path>
     </svg>
   );
 };

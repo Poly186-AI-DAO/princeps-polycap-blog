@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link";
 import Logo from "./Logo";
-import { GithubIcon, LinkedinIcon, MoonIcon, SunIcon, TwitterIcon, YouTubeIcon, PeerlistIcon } from "../Icons";
+import { GithubIcon, LinkedinIcon, MoonIcon, SunIcon, TwitterIcon, YouTubeIcon, PeerlistIcon, InstagramIcon, TikTokIcon, MediumIcon } from "../Icons";
 import siteMetadata from "@/src/utils/siteMetaData";
 import { useThemeSwitch } from "../Hooks/useThemeSwitch";
 import { useState } from "react";
@@ -83,11 +83,14 @@ const toggle = () =>{
             </button>
         </nav>
         <div className=" hidden sm:flex items-center">
-            <a href={siteMetadata.linkedin} rel="noopener noreferrer" className="inline-block w-6 h-6 mr-4 animate-breathe" aria-label="Reach out to me via LinkedIn" target="_blank"><LinkedinIcon className="hover:scale-125 transition-all ease duration-200" /></a>
-            <a href={siteMetadata.twitter} rel="noopener noreferrer" className="inline-block w-6 h-6 mr-4 animate-breathe" aria-label="Reach out to me via Twitter" target="_blank"><TwitterIcon className="hover:scale-125 transition-all ease duration-200" /></a>
-            <a href={siteMetadata.github} rel="noopener noreferrer" className="inline-block w-6 h-6 mr-4 animate-breathe" aria-label="Check my profile on Github" target="_blank"><GithubIcon className="  hover:scale-125 transition-all ease duration-200 dark:fill-light" /></a>
-            <a href={siteMetadata.youtube} rel="noopener noreferrer" className="inline-block w-6 h-6 mr-4 animate-breathe" aria-label="Check my YouTube channel" target="_blank"><YouTubeIcon className="hover:scale-125 transition-all ease duration-200" /></a>
-            <a href={siteMetadata.peerlist} rel="noopener noreferrer" className="inline-block w-6 h-6 mr-4 animate-breathe" aria-label="Check my profile on Peerlist" target="_blank"><PeerlistIcon className="hover:scale-125 transition-all ease duration-200" /></a>
+            <a href={siteMetadata.linkedin} rel="noopener noreferrer" className="inline-block w-6 h-6 mr-4 animate-breathe text-dark dark:text-light" aria-label="Reach out to me via LinkedIn" target="_blank"><LinkedinIcon className="hover:scale-125 transition-all ease duration-200" /></a>
+            <a href={siteMetadata.github} rel="noopener noreferrer" className="inline-block w-6 h-6 mr-4 animate-breathe text-dark dark:text-light" aria-label="Check my profile on Github" target="_blank"><GithubIcon className="hover:scale-125 transition-all ease duration-200 dark:fill-light" /></a>
+            <a href={siteMetadata.twitter} rel="noopener noreferrer" className="inline-block w-6 h-6 mr-4 animate-breathe text-dark dark:text-light" aria-label="Reach out to me via Twitter" target="_blank"><TwitterIcon className="hover:scale-125 transition-all ease duration-200" /></a>
+            <a href={siteMetadata.youtube} rel="noopener noreferrer" className="inline-block w-6 h-6 mr-4 animate-breathe text-dark dark:text-light" aria-label="Check my YouTube channel" target="_blank"><YouTubeIcon className="hover:scale-125 transition-all ease duration-200" /></a>
+            <a href={siteMetadata.peerlist} rel="noopener noreferrer" className="inline-block w-6 h-6 mr-4 animate-breathe text-dark dark:text-light" aria-label="Check my profile on Peerlist" target="_blank"><PeerlistIcon className="hover:scale-125 transition-all ease duration-200" /></a>
+            <a href={siteMetadata.instagram} rel="noopener noreferrer" className="inline-block w-6 h-6 mr-4 animate-breathe text-dark dark:text-light" aria-label="Follow me on Instagram" target="_blank"><InstagramIcon className="hover:scale-125 transition-all ease duration-200" /></a>
+            <a href={siteMetadata.tiktok} rel="noopener noreferrer" className="inline-block w-6 h-6 mr-4 animate-breathe text-dark dark:text-light" aria-label="Follow me on TikTok" target="_blank"><TikTokIcon className="hover:scale-125 transition-all ease duration-200" /></a>
+            <a href={siteMetadata.medium} rel="noopener noreferrer" className="inline-block w-6 h-6 mr-4 animate-breathe text-dark dark:text-light" aria-label="Read my articles on Medium" target="_blank"><MediumIcon className="hover:scale-125 transition-all ease duration-200" /></a>
         </div>
     </header>
   )
