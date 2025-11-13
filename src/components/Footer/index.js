@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useForm } from "react-hook-form";
-import { GithubIcon, LinkedinIcon, TwitterIcon } from "../Icons";
+import { GithubIcon, LinkedinIcon, TwitterIcon, YouTubeIcon, PeerlistIcon } from "../Icons";
 import Link from "next/link";
 import siteMetadata from "@/src/utils/siteMetaData";
 
@@ -44,7 +44,7 @@ const Footer = () => {
       <div className="flex items-center mt-8">
         <a
           href={siteMetadata.linkedin}
-          className="inline-block w-6 h-6 mr-4"
+          className="inline-block w-6 h-6 mr-4 animate-breathe"
           aria-label="Reach out to me via LinkedIn"
           target="_blank"
           rel="noopener noreferrer"
@@ -53,7 +53,7 @@ const Footer = () => {
         </a>
         <a
           href={siteMetadata.twitter}
-          className="inline-block w-6 h-6 mr-4"
+          className="inline-block w-6 h-6 mr-4 animate-breathe"
           aria-label="Reach out to me via Twitter"
           target="_blank"
           rel="noopener noreferrer"
@@ -62,12 +62,30 @@ const Footer = () => {
         </a>
         <a
           href={siteMetadata.github}
-          className="inline-block w-6 h-6 mr-4 fill-light"
+          className="inline-block w-6 h-6 mr-4 fill-light animate-breathe"
           aria-label="Check my profile on Github"
           target="_blank"
           rel="noopener noreferrer"
         >
           <GithubIcon className="fill-light dark:fill-dark  hover:scale-125 transition-all ease duration-200" />
+        </a>
+        <a
+          href={siteMetadata.youtube}
+          className="inline-block w-6 h-6 mr-4 animate-breathe"
+          aria-label="Check my YouTube channel"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <YouTubeIcon className="hover:scale-125 transition-all ease duration-200" />
+        </a>
+        <a
+          href={siteMetadata.peerlist}
+          className="inline-block w-6 h-6 mr-4 animate-breathe"
+          aria-label="Check my profile on Peerlist"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <PeerlistIcon className="hover:scale-125 transition-all ease duration-200" />
         </a>
       </div>
 
