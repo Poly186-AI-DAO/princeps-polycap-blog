@@ -1,17 +1,16 @@
 const SkillList = [
+  "AI systems architecture",
+  "autonomous digital workers",
+  "workflow automation",
   "next.js",
+  "mongoDB & atlas",
+  "systems thinking",
+  "product strategy",
+  "smart social contracts",
+  "data pipelines",
+  "ops automation",
   "tailwind css",
-  "figma",
-  "javaScript",
-  "web design",
-  "Gatsby.js",
-  "strapi",
-  "firebase",
-  "generative AI",
-  "wireframing",
-  "SEO",
-  "framer motion",
-  "sanity",
+  "founder storytelling",
 ];
 
 const Skills = () => {
@@ -19,7 +18,7 @@ const Skills = () => {
     <section className="w-full flex flex-col p-5 xs:p-10 sm:p-12 md:p-16 lg:p-20 border-b-2 border-solid border-dark dark:border-light
      text-dark dark:text-light">
       <span className="font-semibold text-lg sm:text-3xl md:text-4xl text-accent dark:text-accentDark">
-        I'm comfortable in...
+        Disciplines that anchor my work
       </span>
       <ul className="flex flex-wrap mt-8 justify-center  xs:justify-start">
         {SkillList.map((item, index) => {

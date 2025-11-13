@@ -2,14 +2,14 @@ import InsightRoll from "@/src/components/About/InsightRoll";
 
 
 const insights = [
-    "20+ Projects Completed",
-    "3+ Years of Freelancing",
-    "99% Client Satisfaction",
-    "20K+ Subscribers",
-    "Authored In-Depth Course on Educative",
-    "Contributed as a Technical Course Reviewer 📝",
-    "Recipient of the Hackernoon Noonies Award 🏆",
-  ];
+  "Self-taught Kenyan systems architect",
+  "Founder of Poly — AI digital worker OS",
+  "Designing SESAP smart social contracts",
+  "Automating food, water, energy, shelter",
+  "Terraforming Sahara moonshot researcher",
+  "Senior Partner @ Power Moves",
+  "Building Poly186 in public every day",
+]
 
 export default function AboutLayout({ children }) {
   return (
