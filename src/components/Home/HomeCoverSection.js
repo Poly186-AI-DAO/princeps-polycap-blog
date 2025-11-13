@@ -11,8 +11,8 @@ const HomeCoverSection = ({blogs}) => {
     const blog = sortedBlogs[0];
 
   return (
-    <div className='w-full inline-block'>
-        <article className='flex flex-col items-start justify-end mx-5 sm:mx-10 relative h-[60vh] sm:h-[85vh]'>
+    <div className="w-full inline-block px-5 sm:px-10 md:px-24 lg:px-32">
+        <article className='flex flex-col items-start justify-end relative h-[60vh] sm:h-[85vh]'>
             <div className='absolute top-0 left-0 bottom-0 right-0 h-full
             bg-gradient-to-b from-transparent from-0% to-dark/90 rounded-3xl z-0
             ' />

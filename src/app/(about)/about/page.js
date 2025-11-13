@@ -1,6 +1,7 @@
 import AboutCoverSection from "@/src/components/About/AboutCoverSection"
 import Skills from "@/src/components/About/Skills"
 import Link from "next/link"
+import siteMetadata from "@/src/utils/siteMetaData"
 
 export const metadata = {
   title: "About Princeps Polycap",
@@ -9,10 +10,87 @@ export const metadata = {
 }
 
 export default function About() {
+  const { brandStrategy } = siteMetadata
+
+  const stats = [
+    {
+      label: 'Systems in flight',
+      value: 'Poly · SESAP · Automating Basic Needs',
+    },
+    {
+      label: 'Current frontier',
+      value: 'Terraforming Sahara research & field labs',
+    },
+    {
+      label: 'Operating principle',
+      value: 'Build revenue engines that fund planetary regeneration',
+    },
+  ]
+
   return (
     <>
       <AboutCoverSection />
       <Skills />
+
+      {/* Stats Grid - Moved from BrandHero */}
+      <section className="w-full px-5 sm:px-10 md:px-24 lg:px-32 mt-12">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-7xl mx-auto">
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              className="rounded-2xl border border-dark/10 dark:border-white/10 bg-light dark:bg-white/5 p-6 backdrop-blur-sm transition hover:bg-gray/10 dark:hover:bg-white/10"
+            >
+              <p className="text-xs uppercase tracking-[0.35em] text-accent dark:text-accent/70 mb-3">
+                {stat.label}
+              </p>
+              <p className="text-base font-semibold text-dark dark:text-light/90 leading-relaxed">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Brand Info Grid - Moved from BrandHero */}
+      <section className="w-full px-5 sm:px-10 md:px-24 lg:px-32 mt-12">
+        <div className="grid gap-6 lg:grid-cols-2 max-w-7xl mx-auto">
+          <div className="rounded-3xl border border-dark/10 dark:border-white/10 bg-light dark:bg-white/10 p-8 backdrop-blur transition hover:bg-gray/10 dark:hover:bg-white/[0.12]">
+            <p className="text-xs uppercase tracking-[0.35em] text-accent dark:text-accent/80 mb-4">
+              Brand essence
+            </p>
+            <h3 className="text-xl sm:text-2xl font-semibold leading-snug text-dark dark:text-light">
+              {brandStrategy.brandEssence}
+            </h3>
+            <p className="mt-3 text-sm text-dark/70 dark:text-light/70">
+              Voice tone: {brandStrategy.voiceTone}
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              {brandStrategy.primaryAudience.map((audience) => (
+                <span
+                  key={audience}
+                  className="rounded-full border border-dark/20 dark:border-white/20 px-3 py-1.5 text-xs uppercase tracking-wide text-dark/70 dark:text-light/70"
+                >
+                  {audience}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-dark/10 dark:border-white/10 bg-gradient-to-br from-gray/5 to-transparent dark:from-white/5 dark:to-white/0 p-8 backdrop-blur transition hover:from-gray/10 dark:hover:from-white/[0.07]">
+            <p className="text-xs uppercase tracking-[0.35em] text-accent dark:text-accent/80 mb-5">
+              What I publish here
+            </p>
+            <ul className="space-y-4 text-base text-dark dark:text-light/90">
+              {brandStrategy.primaryThemes.map((theme) => (
+                <li key={theme} className="flex items-start gap-3">
+                  <span className="mt-1.5 inline-block h-2 w-2 rounded-full bg-accent flex-shrink-0" />
+                  <span className="leading-relaxed">{theme}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
       <article className="prose dark:prose-invert max-w-4xl w-full mt-12 mx-5 xs:mx-10 sm:mx-12 md:mx-16 lg:mx-20">
         <h2>The origin story</h2>
         <p>
