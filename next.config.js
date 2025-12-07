@@ -10,6 +10,21 @@ module.exports = {
         { protocol: 'http', hostname: '**' },
       ],
     },
+    async redirects() {
+      return [
+        {
+          source: '/:path*',
+          has: [
+            {
+              type: 'host',
+              value: 'princepspolycap.com',
+            },
+          ],
+          destination: 'https://www.princepspolycap.com/:path*',
+          permanent: true,
+        },
+      ]
+    },
     webpack: config => {
       config.plugins.push(new VeliteWebpackPlugin())
       return config
