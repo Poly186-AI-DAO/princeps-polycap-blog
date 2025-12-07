@@ -1,11 +1,12 @@
-import { blogs as allBlogs } from "@/.velite/generated";
+import { getAllBlogs } from "@/src/lib/blogs";
 import BlogLayoutThree from "@/src/components/Blog/BlogLayoutThree";
 import Categories from "@/src/components/Blog/Categories";
 import { slug } from "github-slugger";
 
-// const slugger = new GithubSlugger();
+export const revalidate = 60;
 
 export async function generateStaticParams() {
+  const allBlogs = await getAllBlogs();
   const categories = [];
   const paths = [{ slug: "all" }];
 
@@ -36,11 +37,12 @@ export async function generateMetadata({ params }) {
 const CategoryPage = async ({ params }) => {
 // Await params to access slug
 const { slug: currentSlug } = await params;
+const allBlogs = await getAllBlogs();
 
 // Separating logic to create list of categories from all blogs
 const allCategories = ["all"]; // Initialize with 'all' category
 allBlogs.forEach(blog => {
-  blog.tags.forEach(tag => {
+  (blog.tags || []).forEach(tag => {
     const slugified = slug(tag);
     if (!allCategories.includes(slugified)) {
       allCategories.push(slugified);
@@ -56,7 +58,7 @@ const blogs = allBlogs.filter(blog => {
   if (currentSlug === "all") {
     return true; // Include all blogs if 'all' category is selected
   }
-  return blog.tags.some(tag => slug(tag) === currentSlug);
+  return (blog.tags || []).some(tag => slug(tag) === currentSlug);
 });
 
   return (

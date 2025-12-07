@@ -4,6 +4,12 @@ module.exports = {
     compiler: {
       removeConsole: process.env.NODE_ENV === 'production' ? true : false,
     },
+    images: {
+      remotePatterns: [
+        { protocol: 'https', hostname: '**' },
+        { protocol: 'http', hostname: '**' },
+      ],
+    },
     webpack: config => {
       config.plugins.push(new VeliteWebpackPlugin())
       return config

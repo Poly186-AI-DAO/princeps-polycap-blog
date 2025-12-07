@@ -14,6 +14,10 @@ const getMongoUri = () => {
   return uri;
 };
 
+const getDbName = () => {
+  return process.env.MONGODB_DB_NAME || process.env.COSMOS_DB_DATABASE_NAME || 'PrincepsBlog';
+};
+
 async function connectDB() {
   if (cached.conn) {
     return cached.conn;
@@ -22,6 +26,7 @@ async function connectDB() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
+      dbName: getDbName(),
     };
 
     cached.promise = mongoose.connect(getMongoUri(), opts).then((mongooseInstance) => {

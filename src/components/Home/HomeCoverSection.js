@@ -10,6 +10,10 @@ const HomeCoverSection = ({blogs}) => {
     const sortedBlogs = sortBlogs(blogs);
     const blog = sortedBlogs[0];
 
+    if (!blog) {
+      return null;
+    }
+
   return (
     <div className="w-full inline-block px-5 sm:px-10 md:px-24 lg:px-32">
         <article className='flex flex-col items-start justify-end relative h-[60vh] sm:h-[85vh]'>
