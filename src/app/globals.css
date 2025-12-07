@@ -184,7 +184,12 @@
   .hover-lift:hover
   {
     transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25), 0 0 40px rgba(123, 0, 211, 0.15);
+  }
+
+  :is(.dark .hover-lift:hover)
+  {
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 50px rgba(123, 0, 211, 0.25);
   }
 
   /* === GRADIENT TEXT === */

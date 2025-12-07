@@ -2,7 +2,6 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { GithubIcon, LinkedinIcon, TwitterIcon, YouTubeIcon, PeerlistIcon, InstagramIcon, TikTokIcon, MediumIcon } from "../Icons";
-import Link from "next/link";
 import siteMetadata from "@/src/utils/siteMetaData";
 
 const Footer = () => {
@@ -116,19 +115,13 @@ const Footer = () => {
         </a>
       </div>
 
-      <div className="w-full  mt-16 md:mt-24 relative font-medium border-t border-solid border-light py-6 px-8 flex  flex-col md:flex-row items-center justify-between">
+      <div className="w-full mt-16 md:mt-24 relative font-medium border-t border-solid border-light py-6 px-8 flex flex-col md:flex-row items-center justify-between">
         <span className="text-center">
           &copy;{currentYear} Princeps Polycap. All rights reserved.
         </span>
-        <Link
-          href="/sitemap.xml"
-          className="text-center underline my-4 md:my-0"
-        >
-          sitemap.xml
-        </Link>
         <div className="text-center">
           Documented with &hearts; by{" "}
-          <a href={siteMetadata.siteUrl} className="underline" target="_blank" rel="noopener noreferrer">
+          <a href={siteMetadata.siteUrl} className="hover:text-accent dark:hover:text-accentDark transition-colors duration-300" target="_blank" rel="noopener noreferrer">
             Princeps Polycap
           </a>
         </div>
