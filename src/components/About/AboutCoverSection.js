@@ -18,7 +18,7 @@ const AboutCoverSection = () => {
             From factory floor shifts to Poly186
             </h2>
             <p className='font-medium mt-4 text-base leading-relaxed'>
-            Princeps Polycap is a self-taught Kenyan programmer documenting the real-time build-out of Poly—the AI operating system that funds Poly186, SESAP, Automating Basic Needs, and the Terraforming Sahara moonshot. Every experiment, success, and failure gets shared openly so other founders can see how post-scarcity infrastructure is made.
+            Princeps Polycap is a self-taught Kenyan programmer documenting the real-time build-out of Poly, the AI operating system that funds Poly186, SESAP, Automating Basic Needs, and the Terraforming Sahara moonshot. Every experiment, success, and failure gets shared openly so other founders can see how post-scarcity infrastructure is made.
             </p>
         </div>
     </section>

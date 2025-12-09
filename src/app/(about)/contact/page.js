@@ -4,7 +4,7 @@ import siteMetadata from "@/src/utils/siteMetaData"
 
 export const metadata = {
   title: "Contact Princeps Polycap",
-  description: `Reach out to collaborate on Poly, SESAP, or Automating Basic Needs—or email ${siteMetadata.email}.`,
+  description: `Reach out to collaborate on Poly, SESAP, or Automating Basic Needs. Email ${siteMetadata.email} or schedule a call.`,
 }
 
 export default function Contact() {

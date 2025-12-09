@@ -6,7 +6,7 @@ import siteMetadata from "@/src/utils/siteMetaData"
 export const metadata = {
   title: "About Princeps Polycap",
   description:
-    "Origin story, mission, and ecosystem map for Princeps Polycap—the systems architect building Poly186.",
+    "Origin story, mission, and ecosystem map for Princeps Polycap, the systems architect building Poly186.",
 }
 
 export default function About() {
@@ -106,7 +106,7 @@ export default function About() {
         <p>
           Working overnight shifts on the Medtronic factory floor in Minnesota,
           I watched brilliant people spend entire careers on repetitive tasks
-          that could be automated. That experience sparked Poly—a business OS
+          that could be automated. That experience sparked Poly, a business OS
           powered by AI digital workers so organizations can redeploy humans to
           creative, strategic work.
         </p>
@@ -145,7 +145,7 @@ export default function About() {
 
         <h2>Building in public</h2>
         <p>
-          This site is the canonical log of how everything unfolds—the wins, the
+          This site is the canonical log of how everything unfolds: the wins, the
           prototypes that fail, the meta-commentary on using AI to build AI. If
           you&apos;re building something audacious, I hope this candid record
           gives you both tactical insight and moral permission to keep going.

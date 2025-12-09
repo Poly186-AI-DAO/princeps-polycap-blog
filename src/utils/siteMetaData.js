@@ -22,6 +22,7 @@ const siteMetadata = {
   agencyofpoly: 'https://agencyofpoly.com',
   poly: 'https://poly186.com',
   poly186: 'https://poly186.io',
+  cal: 'https://cal.com/princeps',
   locale: 'en-US',
   brandStrategy: {
     brandEssence: 'The Human Behind The Moonshots',
