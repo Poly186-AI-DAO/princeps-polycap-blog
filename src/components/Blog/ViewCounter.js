@@ -5,45 +5,36 @@ const ViewCounter = ({ slug, noCount = false, showCount = true }) => {
   const [views, setViews] = useState(0);
 
   useEffect(() => {
-    const incrementView = async () => {
+    const updateViews = async () => {
       try {
-        // Call API route to increment view count
-        const response = await fetch(`/api/views/${slug}`, {
-          method: 'POST',
-        });
-        
-        if (!response.ok) {
-          console.error("Error incrementing view count:", response.statusText);
-        }
-      } catch (error) {
-        console.error("An error occurred while incrementing the view count:", error);
-      }
-    };
-
-    if (!noCount) {
-      incrementView();
-    }
-  }, [slug, noCount]);
-
-  useEffect(() => {
-    const getViews = async () => {
-      try {
-        // Call API route to get view count
-        const response = await fetch(`/api/views/${slug}`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          setViews(data.views || 0);
+        if (!noCount) {
+          // Increment and get updated count in one request
+          const response = await fetch(`/api/views/${slug}`, {
+            method: 'POST',
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setViews(data.views || 0);
+          } else {
+            console.error("Error incrementing view count:", response.statusText);
+          }
         } else {
-          console.error("Error fetching view count:", response.statusText);
+          // Read-only: just fetch current count
+          const response = await fetch(`/api/views/${slug}`);
+          if (response.ok) {
+            const data = await response.json();
+            setViews(data.views || 0);
+          } else {
+            console.error("Error fetching view count:", response.statusText);
+          }
         }
       } catch (error) {
-        console.error("An error occurred while fetching the view count:", error);
+        console.error("An error occurred while updating the view count:", error);
       }
     };
 
-    getViews();
-  }, [slug]);
+    updateViews();
+  }, [slug, noCount]);
 
   if (showCount) {
     return <div>{views} views</div>;

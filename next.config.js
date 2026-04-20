@@ -1,13 +1,17 @@
 /** @type {import('next').NextConfig} */
 module.exports = {
-    // othor next config here...
+    // Some MDX-heavy blog posts plus a cold MongoDB Atlas connection can push
+    // a single SSG page past the default 60s. Give the build more headroom.
+    staticPageGenerationTimeout: 300,
     compiler: {
-      removeConsole: process.env.NODE_ENV === 'production' ? true : false,
+      removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
     },
     images: {
       remotePatterns: [
-        { protocol: 'https', hostname: '**' },
-        { protocol: 'http', hostname: '**' },
+        { protocol: 'https', hostname: 'www.princepspolycap.com' },
+        { protocol: 'https', hostname: 'princepspolycap.com' },
+        { protocol: 'https', hostname: 'images.unsplash.com' },
+        { protocol: 'https', hostname: 'res.cloudinary.com' },
       ],
     },
     async redirects() {

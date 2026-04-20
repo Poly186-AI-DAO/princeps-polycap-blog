@@ -18,7 +18,10 @@ export async function generateMetadata({ params }) {
   const {slug} = await params;
   const blog = await getBlogBySlug(slug);
   if (!blog) {
-    return;
+    return {
+      title: 'Post Not Found',
+      description: 'The requested blog post could not be found.',
+    };
   }
 
   const publishedAt = new Date(blog.publishedAt).toISOString();
@@ -117,7 +120,7 @@ export default async function BlogPage({ params }) {
     "dateModified": new Date(blog.updatedAt || blog.publishedAt).toISOString(),
     "author": [{
         "@type": "Person",
-        "name": blog?.author ? [blog.author] : siteMetadata.author,
+        "name": blog?.author || siteMetadata.author,
         "url": siteMetadata.twitter,
       }]
   }

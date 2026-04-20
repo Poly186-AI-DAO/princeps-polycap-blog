@@ -36,7 +36,6 @@ const NewsletterSchema = new mongoose.Schema(
   }
 );
 
-NewsletterSchema.index({ email: 1 });
 NewsletterSchema.index({ subscribed: 1, verified: 1 });
 NewsletterSchema.index({ createdAt: -1 });
 

@@ -1,15 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/src/lib/mongodb';
-import mongoose from 'mongoose';
-
-// Define a simple View schema if it doesn't exist
-const ViewSchema = new mongoose.Schema({
-  slug: { type: String, required: true, unique: true, index: true },
-  views: { type: Number, default: 0 },
-  lastViewed: { type: Date, default: Date.now },
-});
-
-const View = mongoose.models.View || mongoose.model('View', ViewSchema);
+import View from '@/src/models/View';
 
 // GET view count for a slug
 export async function GET(request, { params }) {

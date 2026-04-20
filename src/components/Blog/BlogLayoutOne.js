@@ -14,7 +14,7 @@ const BlogLayoutOne = ({blog}) => {
       />
       <Image
         src={blog.image.src}
-        placeholder="blur"
+        placeholder={blog.image.blurDataURL ? "blur" : "empty"}
         blurDataURL={blog.image.blurDataURL}
         alt={blog.title}
         width={blog.image.width}
@@ -24,7 +24,7 @@ const BlogLayoutOne = ({blog}) => {
       />
 
       <div className="w-full absolute bottom-0 p-4 xs:p-6 sm:p-10 z-20">
-        <Tag link={`/categories/${slug(blog.tags[0])}`} name={blog.tags[0]}
+        <Tag link={`/categories/${slug(blog.tags?.[0] || 'general')}`} name={blog.tags?.[0] || 'general'}
         className="px-6 text-xs sm:text-sm py-1 sm:py-2 !border"
         />
         <h2 className="font-bold capitalize text-sm xs:text-base sm:text-xl md:text-2xl text-light mt-2 sm:mt-4 group-hover:text-accentDark transition-colors duration-300">

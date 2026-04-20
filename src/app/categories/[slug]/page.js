@@ -27,9 +27,10 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
+  const topic = slug === "all" ? "systems for abundance" : slug.replaceAll("-", " ");
   return {
-    title: `${slug.replaceAll("-"," ")} Blogs`,
-    description: `Learn more about ${slug === "all" ? "web development" : slug} through our collection of expert blogs and tutorials`,
+    title: `${slug.replaceAll("-"," ")} — Field Notes`,
+    description: `Build-in-public field notes from Princeps Polycap on ${topic}.`,
   };
 }
 

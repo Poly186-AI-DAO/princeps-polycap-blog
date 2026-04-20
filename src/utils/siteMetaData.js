@@ -6,8 +6,8 @@ const siteMetadata = {
     'Build-in-public journal from Princeps Polycap, the Kenyan AI systems architect behind Poly, SESAP, and the Poly186 vision for post-scarcity infrastructure.',
   language: 'en-US',
   theme: 'system', // system, dark or light
-  siteUrl: 'https://princepspolycap.com',
-  siteLogo: '/logo.png',
+  siteUrl: 'https://www.princepspolycap.com',
+  siteLogo: '/Logo.png',
   socialBanner: '/social-banner.png',
   email: 'contact@princepspolycap.com',
   github: 'https://github.com/princepspolycap',

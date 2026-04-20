@@ -95,14 +95,26 @@ const normalizeVeliteBlog = (blog) => ({
 
 export const getVeliteBlogs = () => fileBlogs.map(normalizeVeliteBlog);
 
+// Module-level cache: during a single SSG build pass (or hot-reload window) we
+// want to hit Mongo once, not once per page. TTL keeps ISR/runtime fresh.
+let dbBlogsCache = null;
+let dbBlogsCachedAt = 0;
+const DB_CACHE_TTL_MS = 60 * 1000;
+
 export const getDbBlogs = async () => {
+  const now = Date.now();
+  if (dbBlogsCache && now - dbBlogsCachedAt < DB_CACHE_TTL_MS) {
+    return dbBlogsCache;
+  }
   try {
     await connectDB();
     const docs = await Blog.find({ status: 'published' }).sort({ publishedAt: -1 }).lean();
-    return docs.map(normalizeDbBlog);
+    dbBlogsCache = docs.map(normalizeDbBlog);
+    dbBlogsCachedAt = now;
+    return dbBlogsCache;
   } catch (error) {
     console.error('Failed to load blogs from database:', error);
-    return [];
+    return dbBlogsCache || [];
   }
 };
 

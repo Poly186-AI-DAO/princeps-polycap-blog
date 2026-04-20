@@ -9,7 +9,7 @@ const BlogLayoutThree = ({ blog }) => {
       <div className="rounded-xl overflow-hidden">
         <Image
           src={blog.image.src}
-          placeholder="blur"
+          placeholder={blog.image.blurDataURL ? "blur" : "empty"}
           blurDataURL={blog.image.blurDataURL}
           alt={blog.title}
           width={blog.image.width}
@@ -21,7 +21,7 @@ const BlogLayoutThree = ({ blog }) => {
 
       <div className="flex flex-col w-full p-4">
         <span className="uppercase text-accent dark:text-accentDark font-semibold text-xs sm:text-sm">
-          {blog.tags[0]}
+          {blog.tags?.[0] || 'general'}
         </span>
         <h2 className="font-semibold capitalize text-base sm:text-lg text-dark dark:text-light group-hover:text-accent dark:group-hover:text-accentDark transition-colors duration-300 my-1">
           {blog.title}
