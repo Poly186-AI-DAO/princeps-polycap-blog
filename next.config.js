@@ -12,6 +12,10 @@ module.exports = {
         { protocol: 'https', hostname: 'princepspolycap.com' },
         { protocol: 'https', hostname: 'images.unsplash.com' },
         { protocol: 'https', hostname: 'res.cloudinary.com' },
+        { protocol: 'https', hostname: 'images.pexels.com' },
+        // Azure Blob Storage accounts used by the content/image generation pipeline.
+        // Wildcard covers future storage accounts under blob.core.windows.net.
+        { protocol: 'https', hostname: '**.blob.core.windows.net' },
       ],
     },
     async redirects() {
