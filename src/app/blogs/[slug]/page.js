@@ -36,14 +36,18 @@ export async function generateMetadata({ params }) {
   });
 
   const authors = blog?.author ? [blog.author] : [siteMetadata.author];
+  const canonicalUrl = siteMetadata.siteUrl + blog.url;
 
   return {
     title: blog.title,
     description: blog.description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title: blog.title,
       description: blog.description,
-      url: siteMetadata.siteUrl + blog.url,
+      url: canonicalUrl,
       siteName: siteMetadata.title,
       locale: "en_US",
       type: "article",
