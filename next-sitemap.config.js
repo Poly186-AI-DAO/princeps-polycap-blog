@@ -4,6 +4,14 @@ const mongoose = require("mongoose");
 const SITEMAP_PRIORITY = 0.7;
 const SITEMAP_CHANGEFREQ = "daily";
 
+const getMongoUri = () => {
+  return process.env.MONGODB_DATABASE_URL || process.env.MONGODB_URI || "";
+};
+
+const getMongoDbName = () => {
+  return process.env.MONGODB_DB_NAME || process.env.COSMOS_DB_DATABASE_NAME || "";
+};
+
 const buildBlogEntry = (slug, lastmod) => {
   if (!slug) return null;
   return {
@@ -15,18 +23,24 @@ const buildBlogEntry = (slug, lastmod) => {
 };
 
 const getMongoBlogEntries = async () => {
-  const mongoUri = process.env.MONGODB_URI;
+  const mongoUri = getMongoUri();
   if (!mongoUri) return [];
 
   try {
     if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri, { bufferCommands: false });
+      await mongoose.connect(mongoUri, {
+        bufferCommands: false,
+        ...(getMongoDbName() ? { dbName: getMongoDbName() } : {}),
+      });
     }
 
     const docs = await mongoose.connection.db
       .collection("blogs")
       .find(
-        { status: "published", slug: { $exists: true, $ne: "" } },
+        {
+          slug: { $exists: true, $ne: "" },
+          $or: [{ status: "published" }, { isPublished: true }],
+        },
         { projection: { slug: 1, updatedAt: 1, publishedAt: 1 } }
       )
       .toArray();
