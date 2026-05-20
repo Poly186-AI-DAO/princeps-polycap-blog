@@ -24,6 +24,7 @@ export async function generateMetadata({ params }) {
     };
   }
 
+  const canonicalUrl = siteMetadata.siteUrl + blog.url;
   const publishedAt = new Date(blog.publishedAt).toISOString();
   const modifiedAt = new Date(blog.updatedAt || blog.publishedAt).toISOString();
 
@@ -40,10 +41,13 @@ export async function generateMetadata({ params }) {
   return {
     title: blog.title,
     description: blog.description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title: blog.title,
       description: blog.description,
-      url: siteMetadata.siteUrl + blog.url,
+      url: canonicalUrl,
       siteName: siteMetadata.title,
       locale: "en_US",
       type: "article",
