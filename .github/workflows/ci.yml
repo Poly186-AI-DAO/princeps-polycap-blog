@@ -1,0 +1,88 @@
+name: ci
+
+# The repo had zero workflow runs before this file: no build gate, no deploy job,
+# no record that a deploy was ever attempted. This adds the gate and makes the
+# deploy path explicit instead of tribal.
+#
+# Both gates are credential-guarded on purpose. Pages are DB-backed at build time
+# (src/app/blogs/[slug]/page.js calls generateStaticParams() against Mongo), so a
+# build without MONGODB_DATABASE_URL fails for an environmental reason, not a code
+# reason. A permanently-red CI teaches everyone to ignore CI. Instead:
+#   - no secret  -> step skips with a notice naming the missing secret
+#   - secret set -> step runs for real
+# Add the secret and the gate arms itself. No workflow edit required.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build (next)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # `secrets` is not available in step-level `if:`; map to env at job level.
+      HAS_DB_URL: ${{ secrets.MONGODB_DATABASE_URL != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # No package-lock.json is committed, so `npm ci` cannot be used.
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Build
+        if: env.HAS_DB_URL == 'true'
+        env:
+          MONGODB_DATABASE_URL: ${{ secrets.MONGODB_DATABASE_URL }}
+        run: npm run build
+
+      - name: Build skipped
+        if: env.HAS_DB_URL == 'false'
+        run: |
+          echo "::notice title=build skipped::MONGODB_DATABASE_URL is not set. Blog pages are generated from Mongo at build time, so a build here would fail for an environmental reason. Add the repository secret to arm this gate."
+
+  deploy:
+    name: deploy (vercel production)
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HAS_VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Vercel CLI
+        if: env.HAS_VERCEL_TOKEN == 'true'
+        run: npm i -g vercel@latest
+
+      - name: Deploy
+        if: env.HAS_VERCEL_TOKEN == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: vercel deploy --prod --yes --token "$VERCEL_TOKEN"
+
+      - name: Deploy skipped
+        if: env.HAS_VERCEL_TOKEN == 'false'
+        run: |
+          echo "::notice title=deploy skipped::VERCEL_TOKEN is not set. Add VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID as repository secrets to enable production deploys from main."
