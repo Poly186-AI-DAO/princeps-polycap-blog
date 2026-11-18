@@ -1,46 +1,42 @@
-name: Azure Static Web Apps CI/CD
+# RETIRED 2026-11-18 — do not re-enable.
+#
+# This Azure Static Web Apps pipeline was the only deploy path in this repo and
+# it never worked:
+#
+#   - It failed on every run since 2026-05-20. A permanently red workflow is
+#     worse than no workflow: it trains everyone to ignore the Actions tab, so
+#     the one run that matters reads as noise.
+#   - Azure Static Web Apps cannot serve this app. The blog renders per-request
+#     from MongoDB (src/lib/blogs.js does Blog.find at request time; the page
+#     sets `revalidate = 60`), and the build itself queries the database via
+#     generateStaticParams. SWA is a static host with no server runtime and no
+#     build-time database access, so even a green run could not serve /blogs/*.
+#
+# Replaced by .github/workflows/deploy-blog-surface.yml (Vercel, prebuilt in CI,
+# with an env gate and a blog-route gate). That is the deploy path of record.
+#
+# The triggers are removed rather than the file deleted so the failure history
+# stays attached to a named file, and so nobody re-adds an SWA config believing
+# one never existed. Deleting the workflow in the Azure portal, if it is still
+# connected to this repo, is the remaining human step.
+
+name: RETIRED — Azure Static Web Apps
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
-    branches:
-      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+  retired:
+    name: Retired — see deploy-blog-surface.yml
     runs-on: ubuntu-latest
-    name: Build and Deploy Job
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-          lfs: false
-      - name: Build And Deploy
-        id: builddeploy
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_BRAVE_PEBBLE_073F29E0F }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
-          action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "/" # App source code path
-          api_location: "" # Api source code path - optional
-          output_location: ".next" # Built app content directory - optional
-          ###### End of Repository/Build Configurations ######
-
-  close_pull_request_job:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    name: Close Pull Request Job
-    steps:
-      - name: Close Pull Request
-        id: closepullrequest
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_BRAVE_PEBBLE_073F29E0F }}
-          action: "close"
+      - name: Explain
+        run: |
+          echo "::notice::This workflow is retired. Deploys run in deploy-blog-surface.yml (Vercel)."
+          echo "It never succeeded (failed on every run since 2026-05-20) and could not"
+          echo "serve this app: Azure Static Web Apps has no server runtime, and the blog"
+          echo "renders per-request from MongoDB with revalidate=60."
