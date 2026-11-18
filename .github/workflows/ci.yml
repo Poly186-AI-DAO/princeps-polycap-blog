@@ -1,140 +1,96 @@
-# CI + production deploy for princeps-polycap-blog.
-#
-# Owner: DevOps Engineer.
-# Rewritten 2026-11-18T13:35Z from a 240-line version that failed workflow
-# validation twice (runs 22071048482, 22071125166) with zero jobs created.
-# Deliberately a conservative YAML subset: no anchors, no multi-document, no
-# reusable-workflow calls, no dynamic `uses:`.
-#
-# Review findings closed here:
-#   B1  The build is NOT skipped when MONGODB_DATABASE_URL is absent. It runs,
-#       and assert-blog-routes.mjs fails the job when the build output contains
-#       zero /blogs/<slug> routes. `next build` exits 0 when
-#       generateStaticParams() returned [] because the DB was unreachable. That
-#       is how a publication count climbed while zero URLs were live.
-#   B2  cancel-in-progress is true only for pull_request, so a second push to
-#       main cannot cancel an in-flight production deploy.
-#   B3  `vercel deploy --prod` builds server-side on Vercel, so
-#       MONGODB_DATABASE_URL must live in the VERCEL PROJECT (Production
-#       scope). A repo secret alone is not enough and reproduces B1 at deploy.
-#   B4  Tracker ref points cross-repo at Poly186-AI-DAO/Poly#1837.
-#
-# Arming list (human, unchanged; escalation bfa8e498):
-#   1. merge this PR
-#   2. create/restore the Vercel project, production branch `main`
-#   3. repo secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
-#   4. Vercel project env (Production): MONGODB_DATABASE_URL  <-- not a repo secret
-#   5. attach princepspolycap.com + apex -> www
+name: CI
 
-name: ci
+# Build gate for the brand blog surface.
+#
+# Owner: DevOps Engineer. Scope: BUILD + ASSERT only. This workflow does not deploy.
+# The single deploy path is .github/workflows/deploy-blog-surface.yml (Vercel), which
+# is secret-gated and ends in scripts/deploy/verify_blog_surface.sh rather than in an
+# exit code. Two deployers racing on one branch is how you ship the wrong build.
+#
+# Three measured facts shaped this file. None of them is a preference:
+#
+# 1. `next build` exits 0 with zero article routes when the DB is unreachable.
+#    src/lib/blogs.js getDbBlogs() catches the connect throw and returns []. The build
+#    log looks fine, the deploy is green, and every /blogs/<slug> 404s. That is exactly
+#    how a publication count climbed while zero URLs were live. A gate that skips the
+#    build "because a DB-backed build would fail" reports success while proving
+#    nothing, so here the build ALWAYS runs and the route assertion ALWAYS follows a
+#    successful build. No DB credential => this job fails, on purpose, naming the fix.
+#
+# 2. There is no package-lock.json in this repo. `npm ci` fails. setup-node's npm cache
+#    cannot resolve a lock file and fails the step. `npm install` it is. Do not
+#    "optimise" either of those back.
+#
+# 3. An earlier 240-line version of this file failed workflow validation twice with
+#    zero jobs created (runs 22071048482, 22071125166). Keep it small and boring.
+#
+# Review findings this file answers: B1 (build was being skipped -> now always runs,
+# with a post-build route assertion), B2 (cancel-in-progress cancelled deploys -> no
+# deploy job lives here any more), B3 (vercel deploy builds server-side, so env belongs
+# to the Vercel project, not to this workflow -> this workflow invokes no vercel CLI),
+# B4 (dead cross-repo issue refs -> none).
 
 on:
   pull_request:
-    branches:
-      - main
+    types: [opened, synchronize, reopened]
+    branches: [main]
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# Safe to cancel here because nothing in this workflow deploys anything.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
-    name: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-
-      - name: Report DB secret state
-        env:
-          MONGODB_DATABASE_URL: ${{ secrets.MONGODB_DATABASE_URL }}
-        run: |
-          if [ -z "${MONGODB_DATABASE_URL}" ]; then
-            echo "::warning title=DB secret absent::MONGODB_DATABASE_URL is not set. The build still runs and is expected to yield zero article routes, which the assertion step treats as a failure."
-          else
-            echo "MONGODB_DATABASE_URL is set (${#MONGODB_DATABASE_URL} chars)."
-          fi
-
-      - name: Build
-        env:
-          MONGODB_DATABASE_URL: ${{ secrets.MONGODB_DATABASE_URL }}
-        run: npm run build
-
-      - name: Assert article routes exist in build output
-        run: node .github/scripts/assert-blog-routes.mjs
-
-  deploy:
-    name: deploy
-    needs: build
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    name: build + route assertion
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      MONGODB_DATABASE_URL: ${{ secrets.MONGODB_DATABASE_URL }}
+      MONGODB_DB_NAME: PrincepsBlog
+      NEXT_TELEMETRY_DISABLED: '1'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Set up Node 20
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: '20'
 
-      - name: Guard Vercel credentials
-        id: vc
+      - name: Report DB credential state
         run: |
-          if [ -z "${VERCEL_TOKEN}" ] || [ -z "${VERCEL_ORG_ID}" ] || [ -z "${VERCEL_PROJECT_ID}" ]; then
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::warning title=vercel secrets absent::Skipping deploy. Set VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID as repository secrets to arm this job."
+          if [ -z "${MONGODB_DATABASE_URL:-}" ]; then
+            echo "::warning title=DB credential absent::MONGODB_DATABASE_URL is not set on this repository. The build will run, but the probe cannot verify that any post exists and this gate will fail. That failure is the correct signal: a green build without it would mean an empty site. Add the secret to arm the gate."
           else
-            echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "MONGODB_DATABASE_URL is present (value not printed)."
           fi
 
-      - name: Deploy to Vercel (production)
-        if: steps.vc.outputs.present == 'true'
-        run: npx --yes vercel@latest deploy --prod --yes --token "${VERCEL_TOKEN}"
+      - name: Install
+        run: npm install --no-audit --no-fund
 
-      - name: Verify a real article URL serves HTML, not the catch-all stub
-        if: steps.vc.outputs.present == 'true'
-        run: |
-          set -euo pipefail
-          HOST="https://www.princepspolycap.com"
-          REAL="/blogs/running-an-ai-company-on-a-clock"
-          FAKE="/blogs/slug-that-does-not-exist-ci-gate"
-          body="$(mktemp)"
-          code="$(curl -sS -L -o "$body" -w '%{http_code}' "${HOST}${REAL}")"
-          bytes="$(wc -c < "$body" | tr -d ' ')"
-          echo "GET ${HOST}${REAL} -> HTTP ${code}, ${bytes} bytes"
-          if [ "${code}" != "200" ]; then
-            echo "::error title=article not live::HTTP ${code} for ${REAL}"
-            exit 1
-          fi
-          if [ "${bytes}" -lt 5000 ]; then
-            echo "::error title=catch-all stub::${bytes} bytes. Every path in this tenant returned an identical 114-byte body; anything this small is a stub, not an article."
-            exit 1
-          fi
-          fake_code="$(curl -sS -L -o /dev/null -w '%{http_code}' "${HOST}${FAKE}")"
-          echo "GET ${HOST}${FAKE} -> HTTP ${fake_code} (must be 404)"
-          if [ "${fake_code}" != "404" ]; then
-            echo "::error title=catch-all route::a fabricated slug returned HTTP ${fake_code}. Every path answering 200 means no article routing exists."
-            exit 1
-          fi
-          echo "Surface verified: real slug serves ${bytes} bytes, fabricated slug 404s."
+      - name: Probe blog database
+        run: node .github/scripts/probe-blog-db.mjs
+
+      - name: Build
+        id: build
+        run: npm run build
+
+      - name: Assert article routes exist in the build output
+        if: ${{ steps.build.outcome == 'success' }}
+        run: node .github/scripts/assert-blog-routes.mjs
+
+      - name: Upload assertion evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blog-build-evidence
+          path: .blog-slugs.json
+          if-no-files-found: warn
+          retention-days: 7
