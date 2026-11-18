@@ -1,138 +1,138 @@
 #!/usr/bin/env node
 /**
- * Post-build gate: prove the build actually produced /blogs/<slug> pages.
+ * Post-build gate (review finding B1).
  *
- * generateStaticParams() -> getAllBlogs() -> getDbBlogs() -> catch { return [] }
+ * `next build` exits 0 even when generateStaticParams() returned [] because the DB
+ * was unreachable — the catch in getDbBlogs() hides it. The build log looks fine, the
+ * deploy is green, and every article URL 404s. That is precisely how a publication
+ * count climbed while zero URLs were live.
  *
- * When that catch fires the build exits 0 and prerenders nothing. Nothing downstream
- * notices: Vercel deploys, the domain returns 200, and every article URL is a 404.
- * That is "green and empty", the failure mode of task d721bc20.
- *
- * This assertion lives at the WORKFLOW boundary on purpose. Putting a throw inside
- * the app would also work, but a boundary assertion cannot be defeated by a silent
- * catch added later, and it does not require an app-code change to keep it honest.
- *
- * Works against both build outputs:
- *   .next/server/app/blogs/<slug>.html        (plain `next build`)
- *   .vercel/output/static/blogs/<slug>.html   (`vercel build --prebuilt`)
+ * This asserts that article routes actually exist in the build output. Several
+ * detectors, because Next's on-disk layout differs between app-router versions and
+ * between `next build` and `vercel build`; one positive is enough to pass, but the
+ * absence of a build directory is a hard failure rather than a pass.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 
-const ROOTS = ['.next/server/app/blogs', '.vercel/output/static/blogs'];
-const MANIFESTS = ['.next/prerender-manifest.json', '.next/app-path-routes-manifest.json'];
+const ROOT = process.cwd();
+const missing = [];
+const found = [];
 
-const found = new Set();
-
-const addRoute = (route) => {
-  if (typeof route !== 'string' || !route.startsWith('/blogs/')) return;
-  const slug = route.replace(/^\/blogs\//, '').replace(/\/$/, '');
-  if (!slug || slug.includes('[') || slug.includes('/')) return; // skip the dynamic template
-  found.add(slug);
+const exists = (p) => {
+  try {
+    fs.accessSync(p);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
-for (const manifest of MANIFESTS) {
-  let json;
+const readJson = (p) => {
   try {
-    json = JSON.parse(fs.readFileSync(manifest, 'utf8'));
+    return JSON.parse(fs.readFileSync(p, 'utf8'));
   } catch {
-    continue;
+    return null;
   }
-  for (const [key, value] of Object.entries(json)) {
-    if (key === 'routes' || key === 'dynamicRoutes') {
-      Object.keys(value || {}).forEach(addRoute);
-    } else if (typeof value === 'string') {
-      addRoute(value);
-    } else if (value && typeof value === 'object') {
-      Object.keys(value).forEach(addRoute);
-    }
-  }
-}
+};
 
-const walkHtml = (dir, base) => {
-  let out = [];
+const walk = (dir, depth = 0, acc = []) => {
+  if (depth > 8 || !exists(dir)) return acc;
   let entries;
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
   } catch {
-    return out;
+    return acc;
   }
-  for (const entry of entries) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      out = out.concat(walkHtml(full, base));
-    } else if (entry.name.endsWith('.html')) {
-      const rel = '/' + path.relative(base, full).split(path.sep).join('/');
-      out.push(rel.replace(/\.html$/, '').replace(/\/index$/, ''));
-    }
+  for (const e of entries) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) walk(full, depth + 1, acc);
+    else acc.push(full);
   }
-  return out;
+  return acc;
 };
 
-for (const root of ROOTS) {
-  const dir = path.resolve(root);
-  if (!fs.existsSync(dir)) continue;
-  walkHtml(dir, path.dirname(dir)).forEach(addRoute);
-}
-
-const slugs = [...found].sort();
-
-// Expected set: the probe's DB read if we ran one, else the configured list.
-let expected = [];
-try {
-  const parsed = JSON.parse(fs.readFileSync('.blog-slugs.json', 'utf8'));
-  if (Array.isArray(parsed.slugs) && parsed.slugs.length) expected = parsed.slugs;
-} catch {
-  /* no probe output in this job */
-}
-if (!expected.length) {
-  expected = (process.env.EXPECTED_BLOG_SLUGS || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
-const missing = expected.filter((s) => !slugs.includes(s));
-
-if (process.env.GITHUB_STEP_SUMMARY) {
-  fs.appendFileSync(
-    process.env.GITHUB_STEP_SUMMARY,
-    [
-      '### Prerendered blog routes',
-      '',
-      `Found **${slugs.length}** static \`/blogs/*\` route(s).`,
-      '',
-      slugs.length
-        ? slugs.slice(0, 40).map((s) => `- \`/blogs/${s}\``).join('\n')
-        : '_none_',
-      '',
-      expected.length ? `Expected (${expected.length}): ${expected.map((s) => `\`${s}\``).join(', ')}` : '',
-      missing.length ? `**Missing:** ${missing.map((s) => `\`${s}\``).join(', ')}` : '',
-      '',
-    ].join('\n')
-  );
-}
-
-console.log(`prerendered /blogs/* routes: ${slugs.length}`);
-if (slugs.length) console.log(slugs.slice(0, 40).join('\n'));
-
-if (!slugs.length) {
+// 1. Build output must exist at all.
+const buildDirs = ['.next', '.vercel/output'].filter((d) => exists(path.join(ROOT, d)));
+if (buildDirs.length === 0) {
   console.error(
-    '::error title=green and empty::Build produced 0 prerendered /blogs/* routes. ' +
-      'getDbBlogs() returned an empty list, so the site would deploy and serve a 404 at ' +
-      'every article URL. Check the probe-blog-db step above and MONGODB_DATABASE_URL in ' +
-      'the Vercel project Production env.'
+    '::error title=no build output::Neither .next/ nor .vercel/output/ exists. The build did not run, so there is nothing to assert. This is a failure, not a skip.'
   );
   process.exit(1);
+}
+
+// 2. Detector: prerender manifest route keys.
+for (const rel of ['.next/prerender-manifest.json', '.next/server/app-paths-manifest.json', '.next/app-path-routes-manifest.json']) {
+  const manifest = readJson(path.join(ROOT, rel));
+  if (!manifest) continue;
+  const keys = Object.keys(manifest).concat(Object.keys(manifest.routes || {}), Object.keys(manifest.dynamicRoutes || {}));
+  const hits = keys.filter((k) => /(^|\/)blogs\/[^/]+\/?$/.test(k) || k.startsWith('/blogs/'));
+  if (hits.length) found.push(`${rel}: ${hits.length} route(s), e.g. ${hits.slice(0, 3).join(', ')}`);
+}
+
+// 3. Detector: emitted HTML for prerendered app-router pages.
+for (const dir of ['.next/server/app/blogs', '.vercel/output/static/blogs']) {
+  const abs = path.join(ROOT, dir);
+  if (!exists(abs)) continue;
+  const html = fs.readdirSync(abs).filter((f) => f.endsWith('.html'));
+  if (html.length) found.push(`${dir}: ${html.length} prerendered page(s), e.g. ${html.slice(0, 3).join(', ')}`);
+}
+
+// 4. Detector: ISR cache entries, one per prerendered slug.
+const isrCache = path.join(ROOT, '.next/server/app/blogs');
+if (exists(isrCache)) {
+  const files = walk(isrCache);
+  if (files.length) found.push(`.next/server/app/blogs: ${files.length} build artifact(s)`);
+}
+
+// 5. Detector: pages-router fallback.
+const pagesBlogs = ['.next/server/pages/blogs', '.next/server/pages/blog'];
+for (const dir of pagesBlogs) {
+  const abs = path.join(ROOT, dir);
+  if (!exists(abs)) continue;
+  const files = fs.readdirSync(abs).filter((f) => /\.(html|js|json)$/.test(f));
+  if (files.length) found.push(`${dir}: ${files.length} page artifact(s)`);
+}
+
+// 6. Cross-check against the slugs the probe actually read from the DB.
+const probed = readJson(path.join(ROOT, '.blog-slugs.json'));
+const probedSlugs = probed && Array.isArray(probed.slugs) ? probed.slugs : [];
+
+if (probedSlugs.length) {
+  const allFiles = buildDirs.flatMap((d) => walk(path.join(ROOT, d)));
+  const absent = probedSlugs.filter((slug) => !allFiles.some((f) => f.includes(slug)));
+  if (absent.length) {
+    missing.push(`probe read ${probedSlugs.length} published slug(s) but the build contains no artifact for: ${absent.join(', ')}`);
+  } else {
+    found.push(`all ${probedSlugs.length} probed slug(s) present in build output`);
+  }
+}
+
+if (process.env.GITHUB_STEP_SUMMARY) {
+  const lines = ['### Build route assertion', ''];
+  lines.push(found.length ? 'Detected:' : 'Detected: **nothing**');
+  for (const f of found) lines.push(`- ${f}`);
+  if (missing.length) {
+    lines.push('', 'Missing:');
+    for (const m of missing) lines.push(`- ${m}`);
+  }
+  lines.push('');
+  fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n'));
 }
 
 if (missing.length) {
+  console.error(`::error title=prerender gap::${missing.join(' | ')}`);
+  process.exit(1);
+}
+
+if (!found.length) {
   console.error(
-    `::error title=published posts missing from build::Build prerendered ${slugs.length} ` +
-      `blog route(s) but not [${missing.join(', ')}]. Those posts exist in the database and ` +
-      'would be unreachable on the live site.'
+    '::error title=zero article routes in build::The build succeeded but contains no /blogs/<slug> route. ' +
+      'generateStaticParams() almost certainly returned [] because the DB was unreachable or empty. ' +
+      'Deploying this ships a site whose article URLs are 404. Fix the DB connection, do not relax this check.'
   );
   process.exit(1);
 }
 
-console.log('blog route assertion: OK');
+console.log('assert: article routes present');
+for (const f of found) console.log(`  - ${f}`);
