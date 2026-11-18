@@ -1,0 +1,96 @@
+name: CI
+
+# Build gate for the brand blog surface.
+#
+# Owner: DevOps Engineer. Scope: BUILD + ASSERT only. This workflow does not deploy.
+# The single deploy path is .github/workflows/deploy-blog-surface.yml (Vercel), which
+# is secret-gated and ends in scripts/deploy/verify_blog_surface.sh rather than in an
+# exit code. Two deployers racing on one branch is how you ship the wrong build.
+#
+# Three measured facts shaped this file. None of them is a preference:
+#
+# 1. `next build` exits 0 with zero article routes when the DB is unreachable.
+#    src/lib/blogs.js getDbBlogs() catches the connect throw and returns []. The build
+#    log looks fine, the deploy is green, and every /blogs/<slug> 404s. That is exactly
+#    how a publication count climbed while zero URLs were live. A gate that skips the
+#    build "because a DB-backed build would fail" reports success while proving
+#    nothing, so here the build ALWAYS runs and the route assertion ALWAYS follows a
+#    successful build. No DB credential => this job fails, on purpose, naming the fix.
+#
+# 2. There is no package-lock.json in this repo. `npm ci` fails. setup-node's npm cache
+#    cannot resolve a lock file and fails the step. `npm install` it is. Do not
+#    "optimise" either of those back.
+#
+# 3. An earlier 240-line version of this file failed workflow validation twice with
+#    zero jobs created (runs 22071048482, 22071125166). Keep it small and boring.
+#
+# Review findings this file answers: B1 (build was being skipped -> now always runs,
+# with a post-build route assertion), B2 (cancel-in-progress cancelled deploys -> no
+# deploy job lives here any more), B3 (vercel deploy builds server-side, so env belongs
+# to the Vercel project, not to this workflow -> this workflow invokes no vercel CLI),
+# B4 (dead cross-repo issue refs -> none).
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Safe to cancel here because nothing in this workflow deploys anything.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build + route assertion
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      MONGODB_DATABASE_URL: ${{ secrets.MONGODB_DATABASE_URL }}
+      MONGODB_DB_NAME: PrincepsBlog
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Report DB credential state
+        run: |
+          if [ -z "${MONGODB_DATABASE_URL:-}" ]; then
+            echo "::warning title=DB credential absent::MONGODB_DATABASE_URL is not set on this repository. The build will run, but the probe cannot verify that any post exists and this gate will fail. That failure is the correct signal: a green build without it would mean an empty site. Add the secret to arm the gate."
+          else
+            echo "MONGODB_DATABASE_URL is present (value not printed)."
+          fi
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Probe blog database
+        run: node .github/scripts/probe-blog-db.mjs
+
+      - name: Build
+        id: build
+        run: npm run build
+
+      - name: Assert article routes exist in the build output
+        if: ${{ steps.build.outcome == 'success' }}
+        run: node .github/scripts/assert-blog-routes.mjs
+
+      - name: Upload assertion evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blog-build-evidence
+          path: .blog-slugs.json
+          if-no-files-found: warn
+          retention-days: 7

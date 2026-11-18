@@ -1,46 +1,68 @@
-name: Azure Static Web Apps CI/CD
+name: Azure Static Web Apps (retired - manual dispatch only)
+
+# WHY THIS FILE NO LONGER RUNS ON PUSH OR PR
+# ------------------------------------------
+# This workflow was the reason princepspolycap.com answered every path with the same
+# 114-byte body, including a slug that does not exist. It is not a stale process and it
+# is not a key-format bug. It is this configuration:
+#
+# 1. `output_location: ".next"` uploads a Next.js build to SWA as STATIC content. This
+#    app needs a Node runtime per request: src/lib/blogs.js queries Mongo per render and
+#    src/app/blogs/[slug]/page.js declares `revalidate = 60`. Uploading a static build of
+#    an SSR app produces exactly the measured symptom - a catch-all stub that answers 200
+#    with a tiny body on every path, including fabricated ones.
+# 2. Azure Static Web Apps does not implement ISR. `revalidate` is not honoured there
+#    under any setting, so even a correctly-configured SWA cannot serve this app's
+#    freshness model.
+# 3. It ran on every push to main and every PR, and it failed every time since
+#    2026-05-20 (#16 was the last green run; runs after it failed in 41-50s, before the
+#    Oryx build, in the deploy action's own setup). A permanently-red workflow on a repo
+#    with one real deploy path is not a safety net, it is camouflage: it made PR #2 -
+#    a Vercel change - look broken, and it hid the fact that main had been deploying
+#    nothing for six months.
+#
+# THE SINGLE DEPLOY PATH IS .github/workflows/deploy-blog-surface.yml (Vercel). It is
+# secret-gated and ends in scripts/deploy/verify_blog_surface.sh, so a green run means a
+# real post was fetched from a real host, not that a step exited 0.
+#
+# IF AZURE IS EVER CHOSEN INSTEAD: `output_location: ""` on a Standard-tier SWA with
+# Next.js hybrid rendering, plus a design for the ISR gap above. Do not re-add ".next".
+# Do not re-enable push/PR triggers before that is proven - it will go red again and it
+# will overwrite what the working deploy path serves.
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
-    branches:
-      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    name: Build and Deploy (manual, needs SWA token)
     runs-on: ubuntu-latest
-    name: Build and Deploy Job
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-          lfs: false
-      - name: Build And Deploy
-        id: builddeploy
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_BRAVE_PEBBLE_073F29E0F }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
-          action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "/" # App source code path
-          api_location: "" # Api source code path - optional
-          output_location: ".next" # Built app content directory - optional
-          ###### End of Repository/Build Configurations ######
+      - name: Require a deployment token
+        env:
+          TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_BRAVE_PEBBLE_073F29E0F }}
+        run: |
+          if [ -z "${TOKEN:-}" ]; then
+            echo "::error title=SWA token missing::AZURE_STATIC_WEB_APPS_API_TOKEN_BRAVE_PEBBLE_073F29E0F is not set. There is nothing to deploy to. Use .github/workflows/deploy-blog-surface.yml instead."
+            exit 1
+          fi
+          echo "Token present (value not printed)."
 
-  close_pull_request_job:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    name: Close Pull Request Job
-    steps:
-      - name: Close Pull Request
-        id: closepullrequest
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build And Deploy
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_BRAVE_PEBBLE_073F29E0F }}
-          action: "close"
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "/"
+          api_location: ""
+          # Deliberately empty, not ".next". See the header. Oryx builds the Next.js
+          # hybrid app; ".next" would upload a static snapshot of an SSR app.
+          output_location: ""
