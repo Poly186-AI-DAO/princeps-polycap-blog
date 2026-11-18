@@ -193,7 +193,48 @@ jobs:
           echo "deployment_url=${url}" >> "$GITHUB_OUTPUT"
           echo "Deployed: ${url}"
 
-      # The only L3 gate in this file. Deploy completing means nothing; an anonymous
-      # request to the article URL returning real HTML means something.
-      - name: Smoke the live surface
+      # The L3 gate has two distinct failure modes and they need distinct error titles.
+      # Collapsing them cost this task eleven hours: "brand domain serves a stub" was
+      # read as "the deploy is broken", when the deploy had never happened at all.
+      #
+      # Gate 1 — the app renders at the deployment URL it just produced. If this fails,
+      # the deploy is the problem. It cannot be masked by DNS, a custom domain, or an
+      # unattached alias, because it does not touch the brand domain.
+      - name: Smoke the deployment URL (does the app render?)
+        id: smoke_deployment
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
+          SLUGS: ${{ env.EXPECTED_BLOG_SLUGS }}
+        run: |
+          set -eu
+          slug="$(printf '%s' "${SLUGS}" | cut -d, -f1)"
+          base="${DEPLOYMENT_URL%/}"
+          url="${base}/blogs/${slug}"
+          code="$(curl -sS -o /tmp/deploy-body.html -w '%{http_code}' -L --max-time 30 "${url}" || true)"
+          bytes="$(wc -c < /tmp/deploy-body.html | tr -d ' ')"
+          echo "GET ${url} -> ${code} (${bytes} bytes)"
+          {
+            echo "### Gate 1 — deployment URL"
+            echo ""
+            echo "| url | status | bytes |"
+            echo "| --- | --- | --- |"
+            echo "| \`${url}\` | ${code} | ${bytes} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "${code}" != "200" ]; then
+            echo "::error title=deployed app does not serve the article::GET ${url} returned ${code}. The deployment exists but the article route does not render. Check the 'Assert /blogs/* routes were prerendered' step and the build log for a zero-route build."
+            exit 1
+          fi
+          if [ "${bytes}" -lt 5000 ]; then
+            echo "::error title=deployed app returned a stub, not a page::GET ${url} returned 200 with only ${bytes} bytes. The 114-byte catch-all body that stalled this task for eleven hours looks exactly like this. A 200 is not a page."
+            exit 1
+          fi
+          if ! grep -qi '<!doctype html' /tmp/deploy-body.html; then
+            echo "::error title=deployed app returned non-HTML::GET ${url} returned 200 and ${bytes} bytes but the body is not an HTML document."
+            exit 1
+          fi
+
+      # Gate 2 — the goal's own criterion: a live URL on the brand domain that an
+      # anonymous human can open. Separate step so that "custom domain not attached yet"
+      # reports as exactly that, and never as "the app is broken".
+      - name: Smoke the brand domain (goal criterion: live URL at www)
         run: node .github/scripts/smoke-blog-surface.mjs
