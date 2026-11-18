@@ -6,7 +6,7 @@ name: Deploy blog surface
 # this repo turned those documents into a live URL, and the only deploy pipeline
 # that existed (Azure Static Web Apps) had failed on every run since 2026-05-20
 # and cannot serve an SSR/ISR Next.js app. This workflow is the deploy path of
-# record: Vercel, built prebuilt in CI, gated on the surface actually answering.
+# record: Vercel, prebuilt in CI, gated on the surface actually answering.
 #
 # Gates, in order. Each one exists because its failure mode is silent:
 #   1. preflight — secrets present, else notice-and-skip (never permanently red)
@@ -40,6 +40,8 @@ jobs:
     name: Build and deploy to Vercel
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    outputs:
+      armed: ${{ steps.preflight.outputs.armed }}
     steps:
       - name: Preflight — secrets present
         id: preflight
@@ -128,26 +130,101 @@ jobs:
           echo "Deployed: $url"
 
   probe:
-    name: Probe the live surface
+    name: Probe the live surface (L3 gate)
     needs: deploy
-    if: github.event_name == 'workflow_dispatch'
+    if: always() && needs.deploy.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - name: Probe real slug, fabricated slug, hero image
+      - name: Skip if deploy was not armed
+        if: needs.deploy.outputs.armed != 'true'
         run: |
-          # A failure here has two distinct causes and they must not be confused:
-          #   - build broken        -> fix the build
-          #   - domain not attached -> move princepspolycap.com onto this Vercel
-          #                            project. The current apex serves a
-          #                            catch-all stub answering 200 with an
-          #                            identical 114-byte body on EVERY path,
-          #                            including fabricated slugs.
-          # The script distinguishes them by status code and byte size.
-          if [ -f scripts/verify_blog_surface.sh ]; then
-            bash scripts/verify_blog_surface.sh "https://princepspolycap.com"
-          else
-            echo "::warning::scripts/verify_blog_surface.sh not present — probe skipped."
-            echo "::warning::Run the four gates manually: real slug 200 + tens of KB, fabricated slug 404, apex->www redirect, hero image 200 for an anonymous request."
+          echo "::notice::Deploy was not armed (no Vercel secrets) — nothing to probe."
+
+      # The four gates are inlined rather than calling scripts/verify_blog_surface.sh.
+      # That script does not exist in this repo; a probe that warns-and-skips when
+      # its helper is missing is the same silent-green failure mode this workflow
+      # was built to catch. If this job runs, every assertion runs.
+      - name: Probe real slug, fabricated slug, apex redirect, hero image
+        if: needs.deploy.outputs.armed == 'true'
+        run: |
+          set -u
+          BASE="https://princepspolycap.com"
+          REAL_SLUG="running-an-ai-company-on-a-clock"
+          FAKE_SLUG="slug-that-does-not-exist-zzz999"
+          fail=0
+
+          probe() { # url -> "status bytes content_type"
+            curl -sS -o /tmp/body -w '%{http_code} %{size_download} %{content_type}' \
+                 -L --max-time 30 -A 'poly-deploy-probe/1.0' "$1" || echo "000 0 -"
+          }
+
+          echo "── Gate 1: real slug must be 200 with real bytes ──"
+          read -r s b c <<<"$(probe "$BASE/blogs/$REAL_SLUG")"
+          echo "GET /blogs/$REAL_SLUG -> $s, $b bytes, $c"
+          if [ "$s" != "200" ]; then
+            echo "::error::real slug returned $s, expected 200"; fail=1
+          elif [ "$b" -lt 20000 ]; then
+            # A real Next.js article page is tens of KB. The catch-all stub that
+            # currently answers this domain returns an identical 114 bytes on
+            # EVERY path, including fabricated slugs. Byte size is the tell.
+            echo "::error::real slug returned only $b bytes — this is the catch-all stub, not the app"; fail=1
           fi
+
+          echo "── Gate 2: fabricated slug must be 404 ──"
+          read -r s2 b2 _c2 <<<"$(probe "$BASE/blogs/$FAKE_SLUG")"
+          echo "GET /blogs/$FAKE_SLUG -> $s2, $b2 bytes"
+          if [ "$s2" != "404" ]; then
+            echo "::error::fabricated slug returned $s2, expected 404 — the domain is not served by this app"; fail=1
+          fi
+
+          echo "── Gate 3: apex must redirect to www ──"
+          # next.config.js declares a permanent apex->www redirect. If apex
+          # answers 200 directly, that config is not the thing serving the domain.
+          apex=$(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' --max-time 30 "$BASE/" || echo "000 ")
+          echo "GET / -> $apex"
+          case "$apex" in
+            301*|308*) echo "apex redirects — ok" ;;
+            *) echo "::error::apex returned '$apex', expected a 301/308 redirect to www"; fail=1 ;;
+          esac
+
+          echo "── Gate 4: hero image must be fetchable anonymously ──"
+          # Extract the first hero/src URL from the real article rather than
+          # hardcoding one: asset URLs are workspace-scoped blob paths and change
+          # per post. If we cannot find one, say so explicitly instead of passing.
+          read -r _s _b _c <<<"$(probe "$BASE/blogs/$REAL_SLUG")"
+          cp /tmp/body /tmp/article.html 2>/dev/null || true
+          HERO=$(grep -oE 'src="[^"]+\.(jpg|jpeg|png|webp)"' /tmp/article.html 2>/dev/null \
+                 | head -1 | sed -E 's/^src="//; s/"$//')
+          if [ -z "${HERO:-}" ]; then
+            echo "::warning::no hero image found in the article HTML — gate 4 not asserted."
+            echo "::warning::Either the post has no hero, or assets are broken at render time. Check manually."
+          else
+            case "$HERO" in
+              http*) HERO_URL="$HERO" ;;
+              /*)    HERO_URL="$BASE$HERO" ;;
+              *)     HERO_URL="$BASE/$HERO" ;;
+            esac
+            read -r s4 b4 c4 <<<"$(probe "$HERO_URL")"
+            echo "GET $HERO_URL -> $s4, $b4 bytes, $c4"
+            if [ "$s4" != "200" ]; then
+              echo "::error::hero image returned $s4 — assets are not publicly reachable"
+              echo "::error::root-relative /api/local-blobs paths resolve to a route this app does not own"
+              fail=1
+            fi
+            case "$c4" in
+              image/*) echo "hero served as $c4 — ok" ;;
+              *) echo "::error::hero returned content-type '$c4', expected image/*"; fail=1 ;;
+            esac
+          fi
+
+          if [ "$fail" -ne 0 ]; then
+            echo ""
+            echo "::error::L3 gate failed. Two distinct causes, do not confuse them:"
+            echo "::error::  (a) build is broken            -> fix the build"
+            echo "::error::  (b) domain not attached to this -> move princepspolycap.com onto the Vercel project"
+            echo "::error::      Vercel project               (apex currently serves a 114-byte catch-all stub)"
+            exit 1
+          fi
+          echo ""
+          echo "All four L3 gates passed. The blog surface is live."
