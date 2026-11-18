@@ -25,7 +25,11 @@ on:
 
 concurrency:
   group: deploy-blog-${{ github.ref }}
-  cancel-in-progress: true
+  # Never cancel a production deploy in flight. With cancel-in-progress: true a
+  # second push to main kills the running deploy; if that newer run then SKIPS
+  # (preflight finds no Vercel secrets) the older run is already dead and nothing
+  # deploys, with main green and no URL published. Queue instead of cancel.
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -74,6 +78,11 @@ jobs:
           node-version: '20'
           cache: npm
 
+      # `vercel pull --environment=production` materialises the project's
+      # production env vars (MONGODB_DATABASE_URL, BLOG_ASSET_ORIGIN) into
+      # .vercel/.env.production.local, which `vercel build --prod` then reads.
+      # Those vars live in the VERCEL PROJECT, not in repo secrets: the build
+      # runs in CI but the environment is the project's.
       - name: Pull Vercel project settings
         run: npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
 
